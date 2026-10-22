@@ -1,17 +1,45 @@
 
-from sqlalchemy import Column, Integer, String, DateTime, func
+from datetime import date
+
+from sqlalchemy import Date, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column
+
 from database import Base
 
 
 class Application(Base):
     __tablename__ = "applications"
 
-    id = Column(Integer, primary_key=True, index=True)
-    company = Column(String(150), nullable=False)
-    role = Column(String(150), nullable=False)
-    status = Column(String(50), nullable=False, default="Applied")
-    location = Column(String(150), nullable=True)
-    job_url = Column(String(500), nullable=True)
-    notes = Column(String(2000), nullable=True)
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    company: Mapped[str] = mapped_column(
+        String(120),
+        nullable=False,
+    )
+
+    role: Mapped[str] = mapped_column(
+        String(160),
+        nullable=False,
+    )
+
+    location: Mapped[str] = mapped_column(
+        String(120),
+        nullable=False,
+        default="Not specified",
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="Applied",
+    )
+
+    date_added: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+        default=date.today,
+    )

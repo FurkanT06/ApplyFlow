@@ -6,12 +6,38 @@ import main
 from main import app
 
 
+
 @pytest.fixture
-def client(tmp_path, monkeypatch):
-    test_db = tmp_path / "test_applyflow.db"
-    monkeypatch.setattr(main, "DB_PATH", str(test_db))
-    with TestClient(app) as test_client:
-        yield test_client
+def client(tmp_path):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from database import Base, get_db
+
+    test_engine = create_engine(
+        f"sqlite:///{tmp_path / 'test_applyflow.db'}",
+        connect_args={"check_same_thread": False},
+    )
+
+    TestingSessionLocal = sessionmaker(bind=test_engine)
+    Base.metadata.create_all(bind=test_engine)
+
+    def override_get_db():
+        db = TestingSessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.clear()
+        test_engine.dispose()
+
 
 
 def test_health_check(client):
