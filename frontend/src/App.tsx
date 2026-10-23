@@ -1,3 +1,5 @@
+import Auth from './Auth'
+import { getToken, logoutUser } from './api'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 import {
@@ -9,6 +11,7 @@ import {
   type Application,
   type ApplicationStatus,
 } from './api'
+
 
 const filters = ['All', ...STATUSES] as const
 
@@ -40,6 +43,17 @@ function logoClass(company: string) {
 const emptyForm = { company: '', role: '', location: '' }
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getToken()))
+
+  function handleLogout() {
+    logoutUser()
+    setIsAuthenticated(false)
+    setApplications([])
+    setError('')
+    setShowForm(false)
+    setForm(emptyForm)
+  }
+
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [connection, setConnection] = useState<Connection>('connecting')
@@ -77,10 +91,11 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!isAuthenticated) return
     const controller = new AbortController()
     void loadApplications(controller.signal)
     return () => controller.abort()
-  }, [loadApplications])
+  }, [loadApplications, isAuthenticated])
 
   // Highlight the sidebar link for the section currently in view.
   useEffect(() => {
@@ -205,6 +220,10 @@ function App() {
         ? 'API offline'
         : 'Connecting...'
 
+  if (!isAuthenticated) {
+    return <Auth onLogin={() => setIsAuthenticated(true)} />
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -247,7 +266,15 @@ function App() {
               <strong>My workspace</strong>
               <span>Free plan</span>
             </div>
-            <span className="profile-menu">···</span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Log out"
+              title="Log out"
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit' }}
+            >
+              Log out
+            </button>
           </div>
         </div>
       </aside>

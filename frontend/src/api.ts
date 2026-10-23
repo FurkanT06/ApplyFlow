@@ -27,14 +27,18 @@ export type CreateApplicationData = {
   location?: string;
 };
 
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const token = sessionStorage.getItem("applyflow_token");
+
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
@@ -73,12 +77,20 @@ export function updateApplicationStatus(
   });
 }
 
+
 export async function deleteApplication(
   id: number,
 ): Promise<void> {
+  const token = sessionStorage.getItem("applyflow_token");
+
   const response = await fetch(
     `${API_URL}/api/applications/${id}`,
-    { method: "DELETE" },
+    {
+      method: "DELETE",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    },
   );
 
   if (!response.ok) {
@@ -86,4 +98,48 @@ export async function deleteApplication(
       `Could not delete the application: ${response.status}`,
     );
   }
+}
+
+
+export type AuthResponse = {
+  access_token: string;
+  token_type: string;
+};
+
+export type UserResponse = {
+  id: number;
+  email: string;
+};
+
+export async function registerUser(
+  email: string,
+  password: string,
+): Promise<UserResponse> {
+  return request<UserResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function loginUser(
+  email: string,
+  password: string,
+): Promise<AuthResponse> {
+  return request<AuthResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+
+export function saveToken(token: string): void {
+  sessionStorage.setItem("applyflow_token", token);
+}
+
+export function getToken(): string | null {
+  return sessionStorage.getItem("applyflow_token");
+}
+
+export function logoutUser(): void {
+  sessionStorage.removeItem("applyflow_token");
 }
